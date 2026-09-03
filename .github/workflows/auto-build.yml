@@ -98,7 +98,7 @@ jobs:
         run: |
           cd upstream
           git apply --whitespace=nowarn ../patch/image-compress-500kb.patch
-          git apply --whitespace=nowarn ../patch/user-experience.patch
+          sed -i 's/return textContent.text.isEmpty()/return textContent.text.isEmpty() \&\& messageContent.isEmpty()/' app/src/main/java/me/rerere/rikkahub/ui/hooks/ChatInputState.kt
           echo "patch applied"
 
       - name: prepare signing
