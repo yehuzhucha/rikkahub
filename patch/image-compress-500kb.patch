@@ -92,3 +92,34 @@ index 7593f0d..620a58d 100644
  private fun File.normalizeByExif(bitmap: Bitmap): Bitmap {
      val orientation = runCatching {
          ExifInterface(absolutePath).getAttributeInt(
+diff --git a/app/build.gradle.kts b/app/build.gradle.kts
+index 2cda71d..d78e476 100644
+--- a/app/build.gradle.kts
++++ b/app/build.gradle.kts
+@@ -362,3 +362,26 @@ dependencies {
+     debugImplementation(libs.androidx.ui.tooling)
+     debugImplementation(libs.androidx.ui.test.manifest)
+ }
++
++// CI 兼容：AGP 9 的分 ABI 产物落在子目录且文件名带版本，复制到 release 根目录并保持旧文件名，
++// 这样自动构建工作流里 `files: .../release/app-arm64-v8a-release.apk` 才能匹配到。
++val ciApkRoot = layout.buildDirectory.dir("outputs/apk/release")
++tasks.register("stageReleaseApks") {
++    doLast {
++        val root = ciApkRoot.get().asFile
++        if (!root.exists()) return@doLast
++        val apks = root.walkTopDown().filter { it.isFile && it.extension == "apk" }.toList()
++        fun stage(source: java.io.File, target: String) {
++            val dest = java.io.File(root, target)
++            if (dest.canonicalPath != source.canonicalPath) {
++                source.copyTo(dest, overwrite = true)
++            }
++        }
++        apks.firstOrNull { it.name.contains("arm64-v8a") }?.let { stage(it, "app-arm64-v8a-release.apk") }
++        apks.firstOrNull { it.name.contains("universal") }?.let { stage(it, "app-universal-release.apk") }
++        apks.firstOrNull { it.name.contains("x86_64") }?.let { stage(it, "app-x86_64-release.apk") }
++    }
++}
++tasks.matching { it.name == "assembleRelease" }.configureEach {
++    finalizedBy(tasks.named("stageReleaseApks"))
++}
