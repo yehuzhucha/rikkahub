@@ -93,26 +93,22 @@ index 7593f0d..620a58d 100644
      val orientation = runCatching {
          ExifInterface(absolutePath).getAttributeInt(
 diff --git a/app/build.gradle.kts b/app/build.gradle.kts
-index 2cda71d..772eefe 100644
+index 2cda71d..4b068d1 100644
 --- a/app/build.gradle.kts
 +++ b/app/build.gradle.kts
-@@ -362,3 +362,24 @@ dependencies {
+@@ -362,3 +362,20 @@ dependencies {
      debugImplementation(libs.androidx.ui.tooling)
      debugImplementation(libs.androidx.ui.test.manifest)
  }
 +
-+// CI 兼容：AGP 9 的分 ABI 产物落在 buildType 下的 ABI 子目录里，
-+// 这里把它们复制到 release 根目录并统一文件名，供自动构建工作流的 files 路径匹配。
++// CI 兼容：APK 实际产物在 outputs/apk/<flavor>/release 下（github/play 两个渠道），
++// 这里把 github 渠道的 arm64 与 universal 包复制到 outputs/apk/release 根目录并统一命名，
++// 供自动构建工作流的 files 路径匹配。
 +tasks.register<Copy>("stageReleaseApks") {
-+    from(layout.buildDirectory.dir("outputs/apk/release")) {
-+        include("**/*arm64-v8a*.apk", "**/*universal*.apk", "**/*x86_64*.apk")
-+        exclude("app-arm64-v8a-release.apk", "app-universal-release.apk", "app-x86_64-release.apk")
++    from(layout.buildDirectory.dir("outputs/apk/github/release")) {
++        include("**/*arm64-v8a*.apk", "**/*universal*.apk")
 +        eachFile {
-+            path = when {
-+                name.contains("arm64-v8a") -> "app-arm64-v8a-release.apk"
-+                name.contains("universal") -> "app-universal-release.apk"
-+                else -> "app-x86_64-release.apk"
-+            }
++            path = if (name.contains("universal")) "app-universal-release.apk" else "app-arm64-v8a-release.apk"
 +        }
 +        includeEmptyDirs = false
 +    }
